@@ -32,6 +32,7 @@ def create_client_server():
     return clients, server
 
 if __name__ == '__main__':
+    print(torch.cuda.is_available())
 
     args = args_parser()
     args.device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() and args.gpu != -1 else 'cpu')
@@ -48,8 +49,8 @@ if __name__ == '__main__':
     for iter in range(args.epochs):
         server.clients_update_w, server.clients_loss = [], []
         for idx in range(args.num_users):
-            delta_w, loss = clients[idx].train()
-            server.clients_update_w.append(delta_w)
+            update_w, loss = clients[idx].train()
+            server.clients_update_w.append(update_w)
             server.clients_loss.append(loss)
 
         # calculate global weights

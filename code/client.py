@@ -2,7 +2,9 @@ import torch
 from torch import nn, autograd
 from torch.utils.data import DataLoader, Dataset
 from models.Nets import CNNMnist
+import numpy as np
 import copy
+
 
 class DatasetSplit(Dataset):
     def __init__(self, dataset, idxs):
@@ -16,22 +18,30 @@ class DatasetSplit(Dataset):
         image, label = self.dataset[self.idxs[item]]
         return image, label
 
+
 class Client():
-    
-    def __init__(self, args, dataset=None, idxs=None, w = None):
+
+    def __init__(self, args, dataset=None, idxs=None, w=None):
         self.args = args
         self.loss_func = nn.CrossEntropyLoss()
         self.ldr_train = DataLoader(DatasetSplit(dataset, idxs), batch_size=self.args.local_bs, shuffle=True)
         self.model = CNNMnist(args=args).to(args.device)
         self.model.load_state_dict(w)
-        
+
+    def sigmasq_func(self):  # Compute the variance for a (eps, delta)-DP Gaussian mechanism with sensitivity = sens
+        eps_u, delta_u = self.comp_reverse()
+        return 2. * np.log(1.25 / delta_u) * self.args.C ** 2 / (eps_u ** 2)
+
+    def comp_reverse(self):
+        return self.args.eps / self.args.num_users, self.args.delta / self.args.num_users
+
     def train(self):
         w_old = copy.deepcopy(self.model.state_dict())
         net = copy.deepcopy(self.model)
 
         net.train()
-        
-        #train and update
+
+        # train and update
         optimizer = torch.optim.SGD(net.parameters(), lr=self.args.lr, momentum=self.args.momentum)
         for iter in range(self.args.local_ep):
             batch_loss = []
@@ -43,28 +53,39 @@ class Client():
                 loss.backward()
                 optimizer.step()
                 batch_loss.append(loss.item())
-        
+
         w_new = net.state_dict()
 
-        delta_w = {}
-        if self.args.mode == 'plain':
+        update_w = {}
+        if self.args.mode == 'plain' or self.args.mode == 'DP':
             for k in w_new.keys():
-                delta_w[k] = w_new[k] - w_old[k]
+                update_w[k] = w_new[k] - w_old[k]
+
+        # elif self.args.mode == 'DP':
+        #     '''1. part one DP mechanism'''
+        #     sigmasq = self.sigmasq_func()
+        #     for k in w_new.keys():
+        #         current_update_w = w_new[k] - w_old[k]
+        #         # Clip gradient
+        #         clipped_gradient = current_update_w / max(1, np.linalg.norm(
+        #             current_update_w) / self.args.C)
+        #         # Add noise
+        #         noise = np.random.normal(0, self.args.C * np.sqrt(sigmasq), size=current_update_w.shape)
+        #
+        #         update_w[k] = clipped_gradient + noise
+        '''
+        2. part two
+            Paillier enc
+        '''
+        return update_w, sum(batch_loss) / len(batch_loss)
+
+    def update(self, w_glob):
+        if self.args.mode == 'plain' or self.args.mode == 'DP':
+            self.model.load_state_dict(w_glob)
 
         '''
         1. part one
             DP mechanism
         2. part two
-            Paillier enc/dec
+            Paillier dec
         '''
-        return delta_w, sum(batch_loss) / len(batch_loss)
-
-    def update(self, w_glob):
-        if self.args.mode == 'plain' or 'DP':
-            self.model.load_state_dict(w_glob)
-            
-        elif self.args.mode == 'Paillier':
-            pass
-            '''
-            part two: Paillier decryption
-            '''

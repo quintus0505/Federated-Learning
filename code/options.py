@@ -6,7 +6,7 @@ import argparse
 def args_parser():
     parser = argparse.ArgumentParser()
     # experiment arguments
-    parser.add_argument('--mode', type=str, default='plain', help="plain, DP, or Paillier")
+    parser.add_argument('--mode', type=str, default='DP', help="plain, DP, or Paillier")
 
     # federated arguments
     parser.add_argument('--epochs', type=int, default=6, help="rounds of training")
@@ -17,11 +17,16 @@ def args_parser():
     parser.add_argument('--lr', type=float, default=0.015, help="learning rate")
     parser.add_argument('--momentum', type=float, default=0.5, help="SGD momentum (default: 0.5)")
     parser.add_argument('--split', type=str, default='user', help="train-test split type, user or sample")
-
+    # new arguments
+    parser.add_argument('--eps', type=float, default=1.25,help="eps")
+    parser.add_argument('--delta',type=float, default= 10**(-3),help="delta")
+    parser.add_argument('--C', type = float,default=1.0,help="C")
+    parser.add_argument('--eta',type=float, default=0.1,help="eta")
     # other arguments
     parser.add_argument('--num_classes', type=int, default=10, help="number of classes")
     parser.add_argument('--num_channels', type=int, default=1, help="number of channels of imges")
     parser.add_argument('--gpu', type=int, default=-1, help="GPU ID, -1 for CPU")
+
 
     args = parser.parse_args()
     return args

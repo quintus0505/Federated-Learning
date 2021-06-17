@@ -3,6 +3,8 @@ import copy
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from models.Nets import CNNMnist
+import numpy as np
+
 
 class Server():
     def __init__(self, args, w):
@@ -12,22 +14,52 @@ class Server():
         self.model = CNNMnist(args=args).to(args.device)
         self.model.load_state_dict(w)
 
+    def sigmasq_func(self):  # Compute the variance for a (eps, delta)-DP Gaussian mechanism with sensitivity = sens
+        eps_u, delta_u = self.comp_reverse()
+        return 2. * np.log(1.25 / delta_u) * self.args.C ** 2 / (eps_u ** 2)
+
+    def comp_reverse(self):
+        return self.args.eps / self.args.num_users, self.args.delta / self.args.num_users
+
     def FedAvg(self):
-        if self.args.mode == 'plain' or 'DP':
+        if self.args.mode == 'plain':
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
+            # print("update_w_avg.keys():{}".format(update_w_avg.keys()))
+            # print("len(self.clients_update_w):{}".format(len(self.clients_update_w)))
             for k in update_w_avg.keys():
                 for i in range(1, len(self.clients_update_w)):
                     update_w_avg[k] += self.clients_update_w[i][k]
+                    # print("self.clients_update_w[{}][{}]:{}".format(i, k, self.clients_update_w[i][k]))
                 update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
-                self.model.state_dict()[k] += update_w_avg[k]        
+                self.model.state_dict()[k] += update_w_avg[k]
+
+        elif self.args.mode == 'DP':
+            '''1. part one DP mechanism'''
+            sigmasq = self.sigmasq_func()
+            update_w_avg = copy.deepcopy(self.clients_update_w[0])
+            for k in update_w_avg.keys():
+                for i in range(1, len(self.clients_update_w)):
+                    # Clip gradient
+                    clipped_gradient = self.clients_update_w[i][k] / max(1, np.linalg.norm(
+                        self.clients_update_w[i][k]) / self.args.C)
+                    print(np.linalg.norm(
+                        self.clients_update_w[i][k]) / self.args.C)
+                    # Add noise
+                    noise = np.random.normal(0, self.args.C * np.sqrt(sigmasq), size=self.clients_update_w[i][k].shape)
+
+                    update_w_avg[k] += (clipped_gradient + noise)
+
+                update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
+                self.model.state_dict()[k] += update_w_avg[k]
+
 
         elif self.args.mode == 'Paillier':
             pass
             '''
-            part two: Paillier addition
+            2. part two Paillier add
             '''
+
         return copy.deepcopy(self.model.state_dict()), sum(self.clients_loss) / len(self.clients_loss)
-    
 
     def test(self, datatest):
         self.model.eval()
