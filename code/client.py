@@ -57,22 +57,22 @@ class Client():
         w_new = net.state_dict()
 
         update_w = {}
-        if self.args.mode == 'plain' or self.args.mode == 'DP':
+        if self.args.mode == 'plain':
             for k in w_new.keys():
                 update_w[k] = w_new[k] - w_old[k]
 
-        # elif self.args.mode == 'DP':
-        #     '''1. part one DP mechanism'''
-        #     sigmasq = self.sigmasq_func()
-        #     for k in w_new.keys():
-        #         current_update_w = w_new[k] - w_old[k]
-        #         # Clip gradient
-        #         clipped_gradient = current_update_w / max(1, np.linalg.norm(
-        #             current_update_w) / self.args.C)
-        #         # Add noise
-        #         noise = np.random.normal(0, self.args.C * np.sqrt(sigmasq), size=current_update_w.shape)
-        #
-        #         update_w[k] = clipped_gradient + noise
+        elif self.args.mode == 'DP':
+            '''1. part one DP mechanism'''
+            sigmasq = self.sigmasq_func()
+            for k in w_new.keys():
+                current_update_w = w_new[k] - w_old[k]
+                # Clip gradient
+                clipped_gradient = current_update_w / max(1, np.linalg.norm(
+                    current_update_w) / self.args.C)
+                # Add noise
+                noise = np.random.normal(0, self.args.C * np.sqrt(sigmasq), size=current_update_w.shape)
+
+                update_w[k] = clipped_gradient + noise
         '''
         2. part two
             Paillier enc

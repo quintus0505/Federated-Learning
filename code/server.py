@@ -42,8 +42,6 @@ class Server():
                     # Clip gradient
                     clipped_gradient = self.clients_update_w[i][k] / max(1, np.linalg.norm(
                         self.clients_update_w[i][k]) / self.args.C)
-                    print(np.linalg.norm(
-                        self.clients_update_w[i][k]) / self.args.C)
                     # Add noise
                     noise = np.random.normal(0, self.args.C * np.sqrt(sigmasq), size=self.clients_update_w[i][k].shape)
 
