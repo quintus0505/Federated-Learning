@@ -8,19 +8,21 @@ from client import *
 from server import *
 import copy
 
+
 def load_dataset():
     trans_mnist = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
     dataset_train = datasets.MNIST('./data/mnist/', train=True, download=True, transform=trans_mnist)
     dataset_test = datasets.MNIST('./data/mnist/', train=False, download=True, transform=trans_mnist)
     return dataset_train, dataset_test
 
+
 def create_client_server():
     num_items = int(len(dataset_train) / args.num_users)
     clients, all_idxs = [], [i for i in range(len(dataset_train))]
     net_glob = CNNMnist(args=args).to(args.device)
 
-    #平分训练数据，i.i.d.
-    #初始化同一个参数的模型
+    # 平分训练数据，i.i.d.
+    # 初始化同一个参数的模型
     for i in range(args.num_users):
         new_idxs = set(np.random.choice(all_idxs, num_items, replace=False))
         all_idxs = list(set(all_idxs) - new_idxs)
@@ -30,6 +32,7 @@ def create_client_server():
     server = Server(args=args, w=copy.deepcopy(net_glob.state_dict()))
 
     return clients, server
+
 
 if __name__ == '__main__':
     print(torch.cuda.is_available())
@@ -43,6 +46,13 @@ if __name__ == '__main__':
 
     print("clients and server initialization...")
     clients, server = create_client_server()
+    eps = server.comp_eps()
+    if server.args.mode == 'plain':
+        print("mode: {}".format(server.args.mode))
+    elif server.args.mode == 'DP':
+        print(
+            "mode: {} eps: {} sigma: {} delta: {} C: {}".format(server.args.mode, eps, server.args.sigma, server.args.delta,
+                                                                server.args.C))
 
     # training
     print("start training...")
@@ -65,7 +75,7 @@ if __name__ == '__main__':
         acc_test, loss_test = server.test(dataset_test)
         print('Round {:3d}, Training average loss {:.3f}'.format(iter, loss_glob))
         print("Round {:3d}, Testing accuracy: {:.2f}".format(iter, acc_test))
-        
+
     # testing
 
     acc_train, loss_train = server.test(dataset_train)

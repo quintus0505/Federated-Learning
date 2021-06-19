@@ -1,5 +1,6 @@
 import torch
 import copy
+import math
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from models.Nets import CNNMnist
@@ -16,7 +17,13 @@ class Server():
 
     def sigmasq_func(self):  # Compute the variance for a (eps, delta)-DP Gaussian mechanism with sensitivity = sens
         eps_u, delta_u = self.comp_reverse()
-        return 2. * np.log(1.25 / delta_u) * self.args.C ** 2 / (eps_u ** 2)
+        sigma = 2. * np.log(1.25 / delta_u) * self.args.C ** 2 / (eps_u ** 2)
+        return sigma
+
+    def comp_eps(self):
+        _, delta_u = self.comp_reverse()
+        return math.sqrt(2*math.log(1.25/delta_u))*self.args.C/self.args.sigma * self.args.num_users
+
 
     def comp_reverse(self):
         return self.args.eps / self.args.num_users, self.args.delta / self.args.num_users
@@ -39,13 +46,10 @@ class Server():
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
             for k in update_w_avg.keys():
                 for i in range(1, len(self.clients_update_w)):
-                    # Clip gradient
-                    clipped_gradient = self.clients_update_w[i][k] / max(1, np.linalg.norm(
-                        self.clients_update_w[i][k]) / self.args.C)
+                    update_w_avg[k] += self.clients_update_w[i][k]
                     # Add noise
-                    noise = np.random.normal(0, self.args.C * np.sqrt(sigmasq), size=self.clients_update_w[i][k].shape)
-
-                    update_w_avg[k] += (clipped_gradient + noise)
+                    noise = np.random.normal(0, self.args.C * self.args.sigma, size=update_w_avg[k].shape)
+                    update_w_avg[k] += noise
 
                 update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
                 self.model.state_dict()[k] += update_w_avg[k]

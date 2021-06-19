@@ -28,7 +28,7 @@ class Client():
         self.model = CNNMnist(args=args).to(args.device)
         self.model.load_state_dict(w)
 
-    def sigmasq_func(self):  # Compute the variance for a (eps, delta)-DP Gaussian mechanism with sensitivity = sens
+    def sigmasq_func(self):
         eps_u, delta_u = self.comp_reverse()
         return 2. * np.log(1.25 / delta_u) * self.args.C ** 2 / (eps_u ** 2)
 
@@ -69,10 +69,8 @@ class Client():
                 # Clip gradient
                 clipped_gradient = current_update_w / max(1, np.linalg.norm(
                     current_update_w) / self.args.C)
-                # Add noise
-                noise = np.random.normal(0, self.args.C * np.sqrt(sigmasq), size=current_update_w.shape)
 
-                update_w[k] = clipped_gradient + noise
+                update_w[k] = clipped_gradient
         '''
         2. part two
             Paillier enc
