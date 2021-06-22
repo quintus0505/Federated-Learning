@@ -29,7 +29,8 @@ def create_client_server():
     for i in range(args.num_users):
         new_idxs = set(np.random.choice(all_idxs, num_items, replace=False))
         all_idxs = list(set(all_idxs) - new_idxs)
-        new_client = Client(args=args, dataset=dataset_train, idxs=new_idxs, w=copy.deepcopy(net_glob.state_dict()), priv=priv,pub=pub)
+        new_client = Client(args=args, dataset=dataset_train, idxs=new_idxs, w=copy.deepcopy(net_glob.state_dict()),
+                            priv=priv, pub=pub)
         clients.append(new_client)
 
     server = Server(args=args, w=copy.deepcopy(net_glob.state_dict()), priv=priv, pub=pub)
@@ -54,7 +55,8 @@ if __name__ == '__main__':
         print("mode: {}".format(server.args.mode))
     elif server.args.mode == 'DP':
         print(
-            "mode: {} eps: {} sigma: {} delta: {} C: {}".format(server.args.mode, eps, server.args.sigma, server.args.delta,
+            "mode: {} eps: {} sigma: {} delta: {} C: {}".format(server.args.mode, eps, server.args.sigma,
+                                                                server.args.delta,
                                                                 server.args.C))
 
     # training
@@ -76,9 +78,11 @@ if __name__ == '__main__':
 
         # update local weights
         for idx in range(args.num_users):
+            # update_w_glob = copy.deepcopy(w_glob)  # TODO： fuck the bug
             clients[idx].update(w_glob)
+
         end = time.time()
-        total_time = end-start
+        total_time = end - start
         epochs_time.append(total_time)
         # print loss
         acc_train, loss_train = server.test(dataset_train)
@@ -98,5 +102,3 @@ if __name__ == '__main__':
     print("Training accuracy: {:.2f}".format(acc_train))
     print("Testing accuracy: {:.2f}".format(acc_test))
     print("Average time: {: .2f}".format(average_time))
-
-

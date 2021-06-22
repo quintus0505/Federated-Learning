@@ -66,7 +66,6 @@ class Server():
 
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
             for k in update_w_avg.keys():
-                update_w_avg[k] = torch.Tensor(update_w_avg[k])
                 for i in range(1, len(self.clients_update_w)):
                     update_w_avg[k] += self.clients_update_w[i][k]
 

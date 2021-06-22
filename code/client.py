@@ -101,8 +101,9 @@ class Client():
         elif self.args.mode == 'Paillier':
             '''2. part two Paillier dec'''
             # decode
+            update_w_glob = copy.deepcopy(w_glob)
             for k in self.model.state_dict().keys():
                 size = self.model.state_dict()[k].size()
-                w_glob[k] = torch.Tensor(dec_tensor(self.priv, self.pub, w_glob[k], size))
+                update_w_glob[k] = torch.Tensor(dec_tensor(self.priv, self.pub, w_glob[k], size))
 
-            self.model.load_state_dict(w_glob)
+            self.model.load_state_dict(update_w_glob)

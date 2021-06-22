@@ -61,7 +61,12 @@ def enc(pub, plain):  # (public key, plaintext)
 
 
 def dec(priv, pub, cipher):  # (private key, public key, cipher)
-    x = powmod(cipher, priv.l, pub.n_sq)
+    try:
+        x = powmod(cipher, priv.l, pub.n_sq)
+    except:
+        print('erro')
+        print(cipher)
+
     L = f_div(sub(x, 1), pub.n)
     return f_mod(mul(L, priv.m), pub.n)
     # return plain
