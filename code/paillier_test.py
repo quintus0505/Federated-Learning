@@ -4,7 +4,6 @@ import copy
 import random, sys, time
 import torch
 import numpy as np
-from math import floor
 from gmpy2 import mpz, powmod, invert, is_prime, random_state, mpz_urandomb, rint_round, log2, gcd, f_mod, f_div, sub, \
     mul, add
 
@@ -86,25 +85,25 @@ def enc_mul_const(pub, m, c):  # to do
 def enc_tensor(pub, list, size):
     if len(size) == 1:
         for i in range(size[0]):
-            list[i] = enc(pub, int((list[i]+b) * digits))
+            list[i] = enc(pub, int((list[i] + b) * digits))
 
     elif len(size) == 2:
         for i in range(size[0]):
             for j in range(size[1]):
-                list[i][j] = enc(pub, int((list[i][j]+b) * digits))
+                list[i][j] = enc(pub, int((list[i][j] + b) * digits))
 
     elif len(size) == 3:
         for i in range(size[0]):
             for j in range(size[1]):
                 for k in range(size[2]):
-                    list[i][j][k] = enc(pub, int((list[i][j][k]+b) * digits))
+                    list[i][j][k] = enc(pub, int((list[i][j][k] + b) * digits))
 
     elif len(size) == 4:
         for i in range(size[0]):
             for j in range(size[1]):
                 for k in range(size[2]):
                     for l in range(size[3]):
-                        list[i][j][k][l] = enc(pub, int((list[i][j][k][l]+b) * digits))
+                        list[i][j][k][l] = enc(pub, int((list[i][j][k][l] + b) * digits))
 
     return list
 
@@ -117,13 +116,13 @@ def dec_tensor(priv, pub, list, size):
     elif len(size) == 2:
         for i in range(size[0]):
             for j in range(size[1]):
-                list[i][j] = dec(priv, pub, list[i][j]) / digits -b
+                list[i][j] = dec(priv, pub, list[i][j]) / digits - b
 
     elif len(size) == 3:
         for i in range(size[0]):
             for j in range(size[1]):
                 for k in range(size[2]):
-                    list[i][j][k] = dec(priv, pub, list[i][j][k]) / digits -b
+                    list[i][j][k] = dec(priv, pub, list[i][j][k]) / digits - b
 
     elif len(size) == 4:
         for i in range(size[0]):
@@ -137,47 +136,66 @@ def dec_tensor(priv, pub, list, size):
 
 if __name__ == '__main__':
     priv, pub = generate_keypair(1024)
-    # print(priv, pub)
-    # """
-    # test
-    # """
-    #
-    # test_number = 100
-    # test_length = [10, 100, 500, 1000]
-    # tests = []
-    # tests_add = []
-    # all_tests_passed = True
-    # for j in range(len(test_length)):
-    #     tests.append([])
-    #     tests_add.append([])
-    #     for i in range(test_number):
-    #         tests[j].append(mpz_urandomb(random_state(random.randrange(sys.maxsize)), test_length[j]))
-    #         tests_add[j].append(mpz_urandomb(random_state(random.randrange(sys.maxsize)), test_length[j]))
-    # # print(tests)
-    # test_enc_time = []
-    # test_dec_time = []
-    # for j in range(len(test_length)):
-    #     test_dec_time.append(0)
-    #     test_enc_time.append(0)
-    #     for i in range(len(tests[j])):
-    #         start = time.time()
-    #         enc(pub, tests[j][i])
-    #         end = time.time()
-    #         test_enc_time[j] += end - start
-    #         start = time.time()
-    #         dec(priv, pub, tests[j][i])
-    #         end = time.time()
-    #         test_dec_time[j] += end - start
-    #         if tests[j][i] + tests_add[j][i] != dec(priv, pub, enc_add(pub, tests[j][i], tests_add[j][i])):
-    #             all_tests_passed = False
-    #     test_enc_time[j] /= test_number
-    #     test_dec_time[j] /= test_number
-    #     print('Average Encrypt time in {} times for {} bits number: {}'.format(test_number, test_length[j],
-    #                                                                            test_enc_time[j]))
-    #     print('Average Decrypt time in {} times for {} bits number: {}'.format(test_number, test_length[j],
-    #                                                                            test_dec_time[j]))
-    # if all_tests_passed:
-    #     print("All add encrypt tests passed!")
+
+    """
+    test
+    """
+
+    test_number = 100
+    test_length = [10, 100, 500, 1000]
+    tests = []
+    tests_add = []
+    all_tests_passed = True
+    for j in range(len(test_length)):
+        tests.append([])
+        tests_add.append([])
+        for i in range(test_number):
+            tests[j].append(mpz_urandomb(random_state(random.randrange(sys.maxsize)), test_length[j]))
+            tests_add[j].append(mpz_urandomb(random_state(random.randrange(sys.maxsize)), test_length[j]))
+    # print(tests)
+    test_enc_time = []
+    test_dec_time = []
+    for j in range(len(test_length)):
+        test_dec_time.append(0)
+        test_enc_time.append(0)
+        for i in range(len(tests[j])):
+            start = time.time()
+            enc(pub, tests[j][i])
+            end = time.time()
+            test_enc_time[j] += end - start
+            start = time.time()
+            dec(priv, pub, tests[j][i])
+            end = time.time()
+            test_dec_time[j] += end - start
+            if tests[j][i] + tests_add[j][i] != dec(priv, pub, enc_add(pub, tests[j][i], tests_add[j][i])):
+                all_tests_passed = False
+        test_enc_time[j] /= test_number
+        test_dec_time[j] /= test_number
+        print('Average Encrypt time in {} times for {} bits number: {}'.format(test_number, test_length[j],
+                                                                               test_enc_time[j]))
+        print('Average Decrypt time in {} times for {} bits number: {}'.format(test_number, test_length[j],
+                                                                               test_dec_time[j]))
+    arr1 = np.arange(10 * 1 * 5 * 5).reshape(10, 1, 5, 5)
+
+    arr1 = torch.from_numpy(arr1)
+    size = arr1.size()
+    list = arr1.numpy().tolist()
+    start = time.time()
+    enc_arr = enc_tensor(pub, list, size)
+    end = time.time()
+    enc_tensor_time = end - start
+    start = time.time()
+    dec_arr = dec_tensor(priv, pub, list, size)
+    end = time.time()
+    dec_tensor_time = end - start
+    new_arr = torch.Tensor(dec_arr)
+    print('Encrypt time for tensor in shape: {} is: {}'.format(arr1.size(), enc_tensor_time))
+    print('Decrypt time for tensor in shape: {} is: {}'.format(arr1.size(), dec_tensor_time))
+    if dec_arr != list:
+        all_tests_passed = False
+
+    if all_tests_passed:
+        print("All add encrypt tests passed!")
     """
     update_w_avg.keys():dict_keys(['conv1.weight', 'conv1.bias', 'conv2.weight', 'conv2.bias', 'fc1.weight', 'fc1.bias', 'fc2.weight', 'fc2.bias'])
     update_w_avg[k] shape:torch.Size([10, 1, 5, 5])
@@ -189,24 +207,3 @@ if __name__ == '__main__':
     update_w_avg[k] shape:torch.Size([10, 50])
     update_w_avg[k] shape:torch.Size([10])
     """
-    arr1 = np.arange(10 * 1 * 5 * 5).reshape(10, 1, 5, 5)
-
-    arr1 = torch.from_numpy(arr1)
-    size = arr1.size()
-    # print(arr1.size())
-    # print(type(arr1))
-    # print(len(arr1.size()))
-    # for i in range(len(arr1.size())):
-    #     print(arr1.size()[i])
-    # print(arr1)
-    list = arr1.numpy().tolist()
-    # arr = torch.Tensor(list)
-    # print(list)
-    # print(arr1[0][0][0][0]+arr1[0][0][0][2])
-    enc_arr = enc_tensor(pub, list, size)
-    dec_arr = dec_tensor(priv, pub, list, size)
-    new_arr = torch.Tensor(dec_arr)
-    print(dec_arr)
-    print(arr1)
-    if (dec_arr == list):
-        print("yes")

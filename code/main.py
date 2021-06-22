@@ -8,6 +8,7 @@ from paillier_test import enc, dec, generate_keypair, enc_add, enc_add_const, en
 from client import *
 from server import *
 import copy
+import time
 
 
 def load_dataset():
@@ -58,7 +59,9 @@ if __name__ == '__main__':
 
     # training
     print("start training...")
+    epochs_time = []
     for iter in range(args.epochs):
+        start = time.time()
         priv, pub = generate_keypair(1024)
         server.update_keypair(priv, pub)
         server.clients_update_w, server.clients_loss = [], []
@@ -74,16 +77,26 @@ if __name__ == '__main__':
         # update local weights
         for idx in range(args.num_users):
             clients[idx].update(w_glob)
-
+        end = time.time()
+        total_time = end-start
+        epochs_time.append(total_time)
         # print loss
         acc_train, loss_train = server.test(dataset_train)
         acc_test, loss_test = server.test(dataset_test)
         print('Round {:3d}, Training average loss {:.3f}'.format(iter, loss_glob))
         print("Round {:3d}, Testing accuracy: {:.2f}".format(iter, acc_test))
+        print("Round {:3d}, epoch time: {:.3f}".format(iter, total_time))
 
     # testing
 
     acc_train, loss_train = server.test(dataset_train)
     acc_test, loss_test = server.test(dataset_test)
+    average_time = 0
+    for i in epochs_time:
+        average_time += i
+    average_time /= len(epochs_time)
     print("Training accuracy: {:.2f}".format(acc_train))
     print("Testing accuracy: {:.2f}".format(acc_test))
+    print("Average time: {: .2f}".format(average_time))
+
+

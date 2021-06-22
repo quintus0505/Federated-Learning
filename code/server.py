@@ -37,20 +37,14 @@ class Server():
     def FedAvg(self):
         if self.args.mode == 'plain':
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
-            print("update_w_avg.keys():{}".format(update_w_avg.keys()))
-            # print("len(self.clients_update_w):{}".format(len(self.clients_update_w)))
             for k in update_w_avg.keys():
-                print("update_w_avg[k] shape:{}".format(update_w_avg[k].size()))
                 for i in range(1, len(self.clients_update_w)):
                     update_w_avg[k] += self.clients_update_w[i][k]
-                    # print("update_w_avg[k] type:{}".format(type(update_w_avg[k])))
-                    # print("self.clients_update_w[{}][{}]:{}".format(i, k, self.clients_update_w[i][k]))
                 update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
                 self.model.state_dict()[k] += update_w_avg[k]
 
         elif self.args.mode == 'DP':
             '''1. part one DP mechanism'''
-            sigmasq = self.sigmasq_func()
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
             for k in update_w_avg.keys():
                 for i in range(1, len(self.clients_update_w)):
@@ -65,19 +59,15 @@ class Server():
         elif self.args.mode == 'Paillier':
             '''2. part two Paillier add'''
             # decode
-            net = self.model
             for k in self.clients_update_w[0].keys():
                 for i in range(0, len(self.clients_update_w)):
                     self.clients_update_w[i][k] = torch.Tensor(
-                        dec_tensor(self.priv, self.pub, self.clients_update_w[i][k], net.state_dict()[k].size()))
+                        dec_tensor(self.priv, self.pub, self.clients_update_w[i][k], self.model.state_dict()[k].size()))
 
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
-            # print(type(update_w_avg))
             for k in update_w_avg.keys():
                 update_w_avg[k] = torch.Tensor(update_w_avg[k])
-                # print(type(update_w_avg[k]))
                 for i in range(1, len(self.clients_update_w)):
-                    # print(type(self.clients_update_w[i][k]))
                     update_w_avg[k] += self.clients_update_w[i][k]
 
                 update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
@@ -91,7 +81,7 @@ class Server():
             enc_state_dict = copy.deepcopy(self.model.state_dict())
             # encode
             for k in enc_state_dict:
-                size = enc_state_dict[k].size()
+                size = self.model.state_dict()[k].size()
                 enc_state_dict[k] = enc_tensor(self.pub, enc_state_dict[k].numpy().tolist(), size)
 
             return enc_state_dict, sum(self.clients_loss) / len(self.clients_loss)

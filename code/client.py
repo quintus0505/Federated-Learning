@@ -65,15 +65,14 @@ class Client():
 
         update_w = {}
         if self.args.mode == 'plain':
-            print(net.state_dict().keys())
-            for k in w_new.keys():
+            for k in self.model.state_dict().keys():
                 update_w[k] = w_new[k] - w_old[k]
             return update_w, sum(batch_loss) / len(batch_loss)
 
         elif self.args.mode == 'DP':
             '''1. part one DP mechanism'''
             sigmasq = self.sigmasq_func()
-            for k in w_new.keys():
+            for k in self.model.state_dict().keys():
                 current_update_w = w_new[k] - w_old[k]
                 # Clip gradient
                 clipped_gradient = current_update_w / max(1, np.linalg.norm(
@@ -85,13 +84,13 @@ class Client():
 
         elif self.args.mode == 'Paillier':
             '''2. part two Paillier enc'''
-            for k in net.state_dict().keys():
+            for k in self.model.state_dict().keys():
                 update_w[k] = w_new[k] - w_old[k]
 
             enc_update_w = copy.deepcopy(update_w)
             # encode
             for k in w_new.keys():
-                size = enc_update_w[k].size()
+                size = self.model.state_dict()[k].size()
                 enc_update_w[k] = enc_tensor(self.pub, enc_update_w[k].numpy().tolist(), size)
 
             return enc_update_w, sum(batch_loss) / len(batch_loss)
