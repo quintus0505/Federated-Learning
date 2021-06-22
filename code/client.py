@@ -2,6 +2,7 @@ import torch
 from torch import nn, autograd
 from torch.utils.data import DataLoader, Dataset
 from models.Nets import CNNMnist
+from paillier_test import enc_tensor, dec_tensor, generate_keypair
 import numpy as np
 import copy
 
@@ -21,12 +22,18 @@ class DatasetSplit(Dataset):
 
 class Client():
 
-    def __init__(self, args, dataset=None, idxs=None, w=None):
+    def __init__(self, args, dataset=None, idxs=None, w=None, priv=None, pub=None):
         self.args = args
         self.loss_func = nn.CrossEntropyLoss()
         self.ldr_train = DataLoader(DatasetSplit(dataset, idxs), batch_size=self.args.local_bs, shuffle=True)
         self.model = CNNMnist(args=args).to(args.device)
         self.model.load_state_dict(w)
+        self.priv = priv
+        self.pub = pub
+
+    def update_keypair(self, priv, pub):
+        self.priv = priv
+        self.pub = pub
 
     def sigmasq_func(self):
         eps_u, delta_u = self.comp_reverse()
@@ -58,8 +65,10 @@ class Client():
 
         update_w = {}
         if self.args.mode == 'plain':
+            print(net.state_dict().keys())
             for k in w_new.keys():
                 update_w[k] = w_new[k] - w_old[k]
+            return update_w, sum(batch_loss) / len(batch_loss)
 
         elif self.args.mode == 'DP':
             '''1. part one DP mechanism'''
@@ -71,19 +80,30 @@ class Client():
                     current_update_w) / self.args.C)
 
                 update_w[k] = clipped_gradient
-        '''
-        2. part two
-            Paillier enc
-        '''
-        return update_w, sum(batch_loss) / len(batch_loss)
+
+            return update_w, sum(batch_loss) / len(batch_loss)
+
+        elif self.args.mode == 'Paillier':
+            '''2. part two Paillier enc'''
+            for k in net.state_dict().keys():
+                update_w[k] = w_new[k] - w_old[k]
+
+            enc_update_w = copy.deepcopy(update_w)
+            # encode
+            for k in w_new.keys():
+                size = enc_update_w[k].size()
+                enc_update_w[k] = enc_tensor(self.pub, enc_update_w[k].numpy().tolist(), size)
+
+            return enc_update_w, sum(batch_loss) / len(batch_loss)
 
     def update(self, w_glob):
         if self.args.mode == 'plain' or self.args.mode == 'DP':
             self.model.load_state_dict(w_glob)
+        elif self.args.mode == 'Paillier':
+            '''2. part two Paillier dec'''
+            # decode
+            for k in self.model.state_dict().keys():
+                size = self.model.state_dict()[k].size()
+                w_glob[k] = torch.Tensor(dec_tensor(self.priv, self.pub, w_glob[k], size))
 
-        '''
-        1. part one
-            DP mechanism
-        2. part two
-            Paillier dec
-        '''
+            self.model.load_state_dict(w_glob)

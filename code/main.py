@@ -4,6 +4,7 @@ import torch
 from torchvision import datasets, transforms, utils
 from models.Nets import CNNMnist
 from options import args_parser
+from paillier_test import enc, dec, generate_keypair, enc_add, enc_add_const, enc_mul_const
 from client import *
 from server import *
 import copy
@@ -17,6 +18,7 @@ def load_dataset():
 
 
 def create_client_server():
+    priv, pub = generate_keypair(1024)
     num_items = int(len(dataset_train) / args.num_users)
     clients, all_idxs = [], [i for i in range(len(dataset_train))]
     net_glob = CNNMnist(args=args).to(args.device)
@@ -26,10 +28,10 @@ def create_client_server():
     for i in range(args.num_users):
         new_idxs = set(np.random.choice(all_idxs, num_items, replace=False))
         all_idxs = list(set(all_idxs) - new_idxs)
-        new_client = Client(args=args, dataset=dataset_train, idxs=new_idxs, w=copy.deepcopy(net_glob.state_dict()))
+        new_client = Client(args=args, dataset=dataset_train, idxs=new_idxs, w=copy.deepcopy(net_glob.state_dict()), priv=priv,pub=pub)
         clients.append(new_client)
 
-    server = Server(args=args, w=copy.deepcopy(net_glob.state_dict()))
+    server = Server(args=args, w=copy.deepcopy(net_glob.state_dict()), priv=priv, pub=pub)
 
     return clients, server
 
@@ -47,7 +49,7 @@ if __name__ == '__main__':
     print("clients and server initialization...")
     clients, server = create_client_server()
     eps = server.comp_eps()
-    if server.args.mode == 'plain':
+    if server.args.mode == 'plain' or server.args.mode == 'Paillier':
         print("mode: {}".format(server.args.mode))
     elif server.args.mode == 'DP':
         print(
@@ -57,8 +59,11 @@ if __name__ == '__main__':
     # training
     print("start training...")
     for iter in range(args.epochs):
+        priv, pub = generate_keypair(1024)
+        server.update_keypair(priv, pub)
         server.clients_update_w, server.clients_loss = [], []
         for idx in range(args.num_users):
+            clients[idx].update_keypair(priv, pub)
             update_w, loss = clients[idx].train()
             server.clients_update_w.append(update_w)
             server.clients_loss.append(loss)
