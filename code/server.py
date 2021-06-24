@@ -29,10 +29,12 @@ class Server():
 
     def comp_eps(self):
         _, delta_u = self.comp_reverse()
-        return math.sqrt(2 * math.log(1.25 / delta_u)) * self.args.C / self.args.sigma * self.args.num_users
+        return math.sqrt(2 * math.log(1.25 / delta_u)) * \
+               self.args.C / self.args.sigma * self.args.num_users
 
     def comp_reverse(self):
-        return self.args.eps / self.args.num_users, self.args.delta / self.args.num_users
+        return self.args.eps / self.args.num_users, \
+               self.args.delta / self.args.num_users
 
     def FedAvg(self):
         if self.args.mode == 'plain':

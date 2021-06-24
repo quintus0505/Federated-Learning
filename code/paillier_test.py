@@ -61,12 +61,7 @@ def enc(pub, plain):  # (public key, plaintext)
 
 
 def dec(priv, pub, cipher):  # (private key, public key, cipher)
-    try:
-        x = powmod(cipher, priv.l, pub.n_sq)
-    except:
-        print('erro')
-        print(cipher)
-
+    x = powmod(cipher, priv.l, pub.n_sq)
     L = f_div(sub(x, 1), pub.n)
     return f_mod(mul(L, priv.m), pub.n)
     # return plain
@@ -145,7 +140,21 @@ if __name__ == '__main__':
     """
     test
     """
+    m1 = mpz(1111111111111)
+    m2 = mpz(2222222222222)
+    c1 = enc(pub, m1)
+    c2 = enc(pub, m2)
+    dec1 = dec(priv, pub, c1)
+    dec2 = dec(priv, pub, c2)
+    print("Cipher1: {}".format(enc(pub, m1)))
+    print("Dec1: {}".format(dec(priv, pub, c1)))
+    print("Cipher2: {}".format(enc(pub, m2)))
+    print("Dec2: {}".format(dec(priv, pub, c2)))
+    print("Add: {}".format(dec(priv, pub, enc_add(pub, m1, m1))))
+    print("Add Constant: {}".format(dec(priv, pub, enc_add_const(pub, m1, m1))))
+    print("Mul Constant: {}".format(dec(priv, pub, enc_mul_const(pub, m1, mpz(1000000000)))))
 
+    priv, pub = generate_keypair(1024)
     test_number = 100
     test_length = [10, 100, 500, 1000]
     tests = []
@@ -180,6 +189,9 @@ if __name__ == '__main__':
                                                                                test_enc_time[j]))
         print('Average Decrypt time in {} times for {} bits number: {}'.format(test_number, test_length[j],
                                                                                test_dec_time[j]))
+    if all_tests_passed:
+        print("number tests passed!")
+
     arr1 = np.arange(10 * 1 * 5 * 5).reshape(10, 1, 5, 5)
 
     arr1 = torch.from_numpy(arr1)
@@ -200,7 +212,7 @@ if __name__ == '__main__':
         all_tests_passed = False
 
     if all_tests_passed:
-        print("All add encrypt tests passed!")
+        print("Tensor tests passed!")
     """
     update_w_avg.keys():dict_keys(['conv1.weight', 'conv1.bias', 'conv2.weight', 'conv2.bias', 'fc1.weight', 'fc1.bias', 'fc2.weight', 'fc2.bias'])
     update_w_avg[k] shape:torch.Size([10, 1, 5, 5])

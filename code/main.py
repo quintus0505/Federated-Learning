@@ -52,12 +52,12 @@ if __name__ == '__main__':
     clients, server = create_client_server()
     eps = server.comp_eps()
     if server.args.mode == 'plain' or server.args.mode == 'Paillier':
-        print("mode: {}".format(server.args.mode))
+        print("mode: {} user_num: {}".format(server.args.mode, server.args.num_users))
     elif server.args.mode == 'DP':
         print(
-            "mode: {} eps: {} sigma: {} delta: {} C: {}".format(server.args.mode, eps, server.args.sigma,
+            "mode: {} eps: {} sigma: {} delta: {} C: {} user_num: {}".format(server.args.mode, eps, server.args.sigma,
                                                                 server.args.delta,
-                                                                server.args.C))
+                                                                server.args.C, server.args.num_users))
 
     # training
     print("start training...")
@@ -78,8 +78,8 @@ if __name__ == '__main__':
 
         # update local weights
         for idx in range(args.num_users):
-            # update_w_glob = copy.deepcopy(w_glob)  # TODO： fuck the bug
-            clients[idx].update(w_glob)
+            update_w_glob = copy.deepcopy(w_glob)  # TODO： fuck the bug
+            clients[idx].update(update_w_glob)
 
         end = time.time()
         total_time = end - start
